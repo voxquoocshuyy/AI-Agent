@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AI.Agent.Domain.Interfaces;
 using AI.Agent.Infrastructure.AI;
 using AI.Agent.Infrastructure.ApiVersioning;
 using AI.Agent.Infrastructure.Authentication;

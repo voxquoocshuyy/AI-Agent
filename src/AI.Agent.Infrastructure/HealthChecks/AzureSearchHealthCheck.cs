@@ -1,4 +1,4 @@
-using AI.Agent.Infrastructure.VectorDatabase;
+using AI.Agent.Domain.Interfaces;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 

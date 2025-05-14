@@ -1,6 +1,7 @@
 using AI.Agent.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
-using OpenAI;
+using Azure.AI.OpenAI;
+using System.Collections.Generic;
 
 namespace AI.Agent.Infrastructure.DocumentProcessing
 {
@@ -45,12 +46,14 @@ namespace AI.Agent.Infrastructure.DocumentProcessing
                 {
                     try
                     {
-                        var response = await _openAIClient.GetEmbeddingsAsync(
-                            new EmbeddingsOptions(_deploymentName, new[] { text }));
-
-                        var embeddings = response.Value.Data[0].Embedding.ToArray();
+                        var embeddings = await _openAIClient.GetEmbeddingsAsync(
+                            new EmbeddingsOptions(text)
+                            {
+                                DeploymentName = _deploymentName
+                            });
+                        
                         _logger.LogInformation("Successfully generated embeddings");
-                        return embeddings;
+                        return embeddings.Value.Data[0].Embedding.ToArray();
                     }
                     catch (Exception ex) when (retryCount < _maxRetries)
                     {

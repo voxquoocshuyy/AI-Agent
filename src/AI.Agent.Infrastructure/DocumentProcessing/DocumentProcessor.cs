@@ -49,14 +49,8 @@ namespace AI.Agent.Infrastructure.DocumentProcessing
                 var content = await _documentExtractor.ExtractTextAsync(fileStream, fileType);
 
                 // Create document
-                var document = new Document
+                var document = new Document(fileName, content, fileType)
                 {
-                    Id = Guid.NewGuid().ToString(),
-                    Name = fileName,
-                    Content = content,
-                    FileType = fileType,
-                    CreatedAt = DateTime.UtcNow,
-                    IsProcessed = false,
                     Metadata = new Dictionary<string, string>
                     {
                         { "OriginalFileName", fileName },
@@ -68,6 +62,7 @@ namespace AI.Agent.Infrastructure.DocumentProcessing
                 // Split content into chunks
                 var chunks = _textChunker.SplitIntoChunks(content);
                 var chunkIndex = 0;
+                var totalChunks = chunks.Count();
 
                 foreach (var chunk in chunks)
                 {
@@ -75,12 +70,9 @@ namespace AI.Agent.Infrastructure.DocumentProcessing
                     var vector = await _embeddingGenerator.GenerateEmbeddingsAsync(chunk);
 
                     // Create chunk document
-                    var chunkDocument = new Document
+                    var chunkDocument = new Document($"{fileName}_chunk_{chunkIndex}", chunk, fileType)
                     {
                         Id = $"{document.Id}_chunk_{chunkIndex}",
-                        Name = $"{fileName}_chunk_{chunkIndex}",
-                        Content = chunk,
-                        FileType = fileType,
                         Vector = vector,
                         CreatedAt = DateTime.UtcNow,
                         IsProcessed = true,
@@ -88,7 +80,7 @@ namespace AI.Agent.Infrastructure.DocumentProcessing
                         {
                             { "OriginalDocumentId", document.Id },
                             { "ChunkIndex", chunkIndex.ToString() },
-                            { "TotalChunks", chunks.Count.ToString() }
+                            { "TotalChunks", totalChunks.ToString() }
                         }
                     };
 
@@ -129,12 +121,9 @@ namespace AI.Agent.Infrastructure.DocumentProcessing
                     var vector = await _embeddingGenerator.GenerateEmbeddingsAsync(chunk);
 
                     // Create chunk document
-                    var chunkDocument = new Document
+                    var chunkDocument = new Document($"{document.Name}_chunk_{chunkIndex}", chunk, document.FileType)
                     {
                         Id = $"{document.Id}_chunk_{chunkIndex}",
-                        Name = $"{document.Name}_chunk_{chunkIndex}",
-                        Content = chunk,
-                        FileType = document.FileType,
                         Vector = vector,
                         CreatedAt = DateTime.UtcNow,
                         IsProcessed = true,
@@ -159,6 +148,33 @@ namespace AI.Agent.Infrastructure.DocumentProcessing
                 _logger.LogError(ex, "Error chunking document {DocumentId}", document.Id);
                 throw;
             }
+        }
+
+        private async Task<IEnumerable<Document>> ProcessChunksAsync(IEnumerable<string> chunks, string sourceId)
+        {
+            var documents = new List<Document>();
+            var chunkIndex = 0;
+
+            foreach (var chunk in chunks)
+            {
+                var embeddings = await _embeddingGenerator.GenerateEmbeddingsAsync(chunk);
+                var document = new Document
+                {
+                    Id = $"{sourceId}_{chunkIndex}",
+                    Name = $"{sourceId}_chunk_{chunkIndex}",
+                    Content = chunk,
+                    Vector = embeddings,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        { "source_id", sourceId },
+                        { "chunk_index", chunkIndex.ToString() }
+                    }
+                };
+                documents.Add(document);
+                chunkIndex++;
+            }
+
+            return documents;
         }
     }
 } 

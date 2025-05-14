@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
+using AI.Agent.Infrastructure.AI;
 
 namespace AI.Agent.Infrastructure.HealthChecks;
 
