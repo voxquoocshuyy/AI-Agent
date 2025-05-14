@@ -1,4 +1,5 @@
 using AI.Agent.Infrastructure.Middleware;
+using Microsoft.AspNetCore.Builder;
 
 namespace AI.Agent.Infrastructure.Extensions;
 
@@ -14,4 +15,4 @@ public static class ExceptionHandlingExtensions
     {
         return app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
     }
-} 
+}

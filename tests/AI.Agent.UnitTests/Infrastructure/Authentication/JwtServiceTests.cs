@@ -1,6 +1,7 @@
+using System.Security.Claims;
 using AI.Agent.Infrastructure.Authentication;
 using Microsoft.Extensions.Options;
-using System.Security.Claims;
+using Xunit;
 
 namespace AI.Agent.UnitTests.Infrastructure.Authentication;
 
@@ -72,4 +73,4 @@ public class JwtServiceTests
         // Assert
         Assert.Null(principal);
     }
-} 
+}

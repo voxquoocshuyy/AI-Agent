@@ -1,8 +1,7 @@
 using AI.Agent.Infrastructure.ApiVersioning;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Versioning;
-using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace AI.Agent.Infrastructure.Middleware;
 
@@ -45,9 +44,9 @@ public class ApiVersionDeprecationMiddleware
         if (deprecationAttribute != null)
         {
             var warningMessage = $"API version {apiVersion} is deprecated. " +
-                               $"Deprecated on: {deprecationAttribute.DeprecationDate:yyyy-MM-dd}. " +
-                               $"Will be removed on: {deprecationAttribute.SunsetDate:yyyy-MM-dd}. " +
-                               deprecationAttribute.Message;
+                                 $"Deprecated on: {deprecationAttribute.DeprecationDate:yyyy-MM-dd}. " +
+                                 $"Will be removed on: {deprecationAttribute.SunsetDate:yyyy-MM-dd}. " +
+                                 deprecationAttribute.Message;
 
             _logger.LogWarning(warningMessage);
             context.Response.Headers.Add("Deprecation", "true");
@@ -57,4 +56,4 @@ public class ApiVersionDeprecationMiddleware
 
         await _next(context);
     }
-} 
+}

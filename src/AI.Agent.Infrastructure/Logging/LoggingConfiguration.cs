@@ -2,9 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
+using Serilog.Formatting.Elasticsearch;
 using Serilog.Sinks.Elasticsearch;
-using Serilog.Enrichers.Environment;
-using Serilog.Enrichers.Thread;
 
 namespace AI.Agent.Infrastructure.Logging;
 
@@ -33,7 +32,8 @@ public static class LoggingConfiguration
                 IndexFormat = $"aiagent-{DateTime.UtcNow:yyyy-MM}",
                 NumberOfShards = 2,
                 NumberOfReplicas = 1,
-                ModifyConnectionSettings = x => x.ServerCertificateValidationCallback((o, certificate, arg3, arg4) => true),
+                ModifyConnectionSettings = x =>
+                    x.ServerCertificateValidationCallback((o, certificate, arg3, arg4) => true),
                 CustomFormatter = new ElasticsearchJsonFormatter()
             })
             .WriteTo.File(
@@ -42,11 +42,8 @@ public static class LoggingConfiguration
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
-        services.AddLogging(loggingBuilder =>
-        {
-            loggingBuilder.AddSerilog(dispose: true);
-        });
+        services.AddLogging(loggingBuilder => { loggingBuilder.AddSerilog(dispose: true); });
 
         return services;
     }
-} 
+}

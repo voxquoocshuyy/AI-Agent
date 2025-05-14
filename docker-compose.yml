@@ -4,48 +4,53 @@ services:
   api:
     build:
       context: .
-      dockerfile: src/AI.Agent.API/Dockerfile
+      dockerfile: Dockerfile
     ports:
-      - "5000:80"
-      - "5001:443"
+      - "8080:80"
+      - "8443:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Host=postgres;Database=aiagent;Username=postgres;Password=postgres
-      - Elasticsearch__Url=http://elasticsearch:9200
-      - Kibana__Url=http://kibana:5601
+      - ASPNETCORE_URLS=http://+:80;https://+:443
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=aiagent;Username=postgres;Password=postgres
+      - AzureOpenAI__Endpoint=https://your-openai-endpoint.openai.azure.com/
+      - AzureOpenAI__ApiKey=your-api-key
+      - AzureOpenAI__DeploymentName=your-deployment-name
+      - AzureSearch__Endpoint=https://your-search-endpoint.search.windows.net
+      - AzureSearch__ApiKey=your-api-key
+      - AzureSearch__IndexName=documents
     depends_on:
       - postgres
       - elasticsearch
       - kibana
 
   postgres:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
+    image: postgres:15
     environment:
       - POSTGRES_DB=aiagent
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.12.1
-    ports:
-      - "9200:9200"
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.12.1
-    ports:
-      - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
     depends_on:
       - elasticsearch
 

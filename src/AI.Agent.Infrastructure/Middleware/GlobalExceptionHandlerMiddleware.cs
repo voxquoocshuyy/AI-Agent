@@ -1,8 +1,11 @@
 using System.Net;
 using System.Text.Json;
 using AI.Agent.Infrastructure.Exceptions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using ApplicationException = AI.Agent.Infrastructure.Exceptions.ApplicationException;
 
 namespace AI.Agent.Infrastructure.Middleware;
 

@@ -1,6 +1,6 @@
+using AI.Agent.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using AI.Agent.Infrastructure.Persistence;
 
 namespace AI.Agent.Infrastructure.HealthChecks;
 
@@ -13,7 +13,8 @@ public class DatabaseHealthCheck : IHealthCheck
         _context = context;
     }
 
-    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -32,4 +33,4 @@ public class DatabaseHealthCheck : IHealthCheck
             return HealthCheckResult.Unhealthy("Database health check failed", ex);
         }
     }
-} 
+}

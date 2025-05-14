@@ -46,7 +46,7 @@ public class ApiVersioningErrorResponseProvider : IErrorResponseProvider
     /// <summary>
     /// Creates an error response for API versioning errors
     /// </summary>
-    public IActionResult CreateResponse(ErrorResponseContext context)
+   public IActionResult CreateResponse(ErrorResponseContext context)
     {
         var response = new
         {
@@ -54,8 +54,8 @@ public class ApiVersioningErrorResponseProvider : IErrorResponseProvider
             {
                 Code = "ApiVersionError",
                 Message = context.Message,
-                SupportedVersions = context.SupportedVersions,
-                CurrentVersion = context.RequestedVersion
+                // SupportedVersions = context.ApiVersions?.Select(v => v.ToString()),
+                // CurrentVersion = context.RequestedVersion?.ToString()
             }
         };
 

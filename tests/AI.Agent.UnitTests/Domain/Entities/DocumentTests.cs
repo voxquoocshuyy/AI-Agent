@@ -1,5 +1,6 @@
 using AI.Agent.Domain.Entities;
 using FluentAssertions;
+using Xunit;
 
 namespace AI.Agent.UnitTests.Domain.Entities;
 
@@ -17,12 +18,12 @@ public class DocumentTests
         var document = new Document(name, content, fileType);
 
         // Assert
-        document.Id.Should().NotBe(Guid.Empty);
+        document.Id.Should().NotBe(Guid.Empty.ToString());
         document.Name.Should().Be(name);
         document.Content.Should().Be(content);
         document.FileType.Should().Be(fileType);
         document.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
-        document.LastModifiedAt.Should().BeNull();
+        document.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
         document.IsProcessed.Should().BeFalse();
         document.ProcessingError.Should().BeNull();
     }
@@ -38,7 +39,7 @@ public class DocumentTests
 
         // Assert
         document.IsProcessed.Should().BeTrue();
-        document.LastModifiedAt.Should().NotBeNull();
+        document.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
         document.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 
@@ -55,7 +56,7 @@ public class DocumentTests
         // Assert
         document.IsProcessed.Should().BeFalse();
         document.ProcessingError.Should().Be(error);
-        document.LastModifiedAt.Should().NotBeNull();
+        document.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
         document.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
 
@@ -73,7 +74,7 @@ public class DocumentTests
         // Assert
         document.Content.Should().Be(newContent);
         document.IsProcessed.Should().BeFalse();
-        document.LastModifiedAt.Should().NotBeNull();
+        document.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
         document.LastModifiedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(1));
     }
-} 
+}

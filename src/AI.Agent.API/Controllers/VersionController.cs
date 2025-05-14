@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 
 namespace AI.Agent.API.Controllers;
 
@@ -29,12 +29,13 @@ public class VersionController : ControllerBase
                 Status = description.IsDeprecated ? "Deprecated" : "Active",
                 GroupName = description.GroupName
             })
+            .OrderByDescending(v => v.Version)
             .ToList();
 
         var versionInfo = new VersionInfo
         {
             CurrentVersion = versions.First().Version,
-            SupportedVersions = versions,
+            SupportedVersions = versions.ToArray(),
             ServerTime = DateTime.UtcNow
         };
 
@@ -61,4 +62,4 @@ public class VersionInfo
     /// Gets or sets the server time in UTC
     /// </summary>
     public DateTime ServerTime { get; set; }
-} 
+}

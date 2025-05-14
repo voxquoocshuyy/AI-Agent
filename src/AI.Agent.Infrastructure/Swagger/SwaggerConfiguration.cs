@@ -3,8 +3,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Any;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace AI.Agent.Infrastructure.Swagger;
@@ -198,14 +201,14 @@ public class SwaggerResponseExamples : IOperationFilter
 
     private static IOpenApiAny? GenerateExample(Type type)
     {
-        if (type == typeof(WeatherForecast))
-        {
-            return OpenApiAnyFactory.CreateFromJson(JsonSerializer.Serialize(new WeatherForecast(
-                DateOnly.FromDateTime(DateTime.Now),
-                25,
-                "Sunny"
-            )));
-        }
+        // if (type == typeof(WeatherForecast))
+        // {
+        //     return OpenApiAnyFactory.CreateFromJson(JsonSerializer.Serialize(new WeatherForecast(
+        //         DateOnly.FromDateTime(DateTime.Now),
+        //         25,
+        //         "Sunny"
+        //     )));
+        // }
 
         return null;
     }

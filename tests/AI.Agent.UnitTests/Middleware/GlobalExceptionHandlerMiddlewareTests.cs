@@ -2,8 +2,8 @@ using System.Net;
 using System.Text.Json;
 using AI.Agent.Infrastructure.Exceptions;
 using AI.Agent.Infrastructure.Middleware;
-using AI.Agent.UnitTests.TestHelpers;
 using FluentAssertions;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -56,11 +56,11 @@ public class GlobalExceptionHandlerMiddlewareTests
     {
         // Arrange
         var notFoundException = new NotFoundException("Resource not found");
-        _next = new RequestDelegate(_ => throw notFoundException);
-        _middleware = new GlobalExceptionHandlerMiddleware(_next, _loggerMock.Object, _environmentMock.Object);
+        var next = new RequestDelegate(_ => throw notFoundException);
+        var middleware = new GlobalExceptionHandlerMiddleware(next, _loggerMock.Object, _environmentMock.Object);
 
         // Act
-        await _middleware.InvokeAsync(_context);
+        await middleware.InvokeAsync(_context);
 
         // Assert
         _context.Response.StatusCode.Should().Be((int)HttpStatusCode.NotFound);
@@ -84,11 +84,11 @@ public class GlobalExceptionHandlerMiddlewareTests
             { "email", new[] { "Email is required" } }
         };
         var validationException = new ValidationException(errors);
-        _next = new RequestDelegate(_ => throw validationException);
-        _middleware = new GlobalExceptionHandlerMiddleware(_next, _loggerMock.Object, _environmentMock.Object);
+        var next = new RequestDelegate(_ => throw validationException);
+        var middleware = new GlobalExceptionHandlerMiddleware(next, _loggerMock.Object, _environmentMock.Object);
 
         // Act
-        await _middleware.InvokeAsync(_context);
+        await middleware.InvokeAsync(_context);
 
         // Assert
         _context.Response.StatusCode.Should().Be((int)HttpStatusCode.BadRequest);
@@ -109,4 +109,4 @@ public class GlobalExceptionHandlerMiddlewareTests
         using var reader = new StreamReader(_context.Response.Body);
         return await reader.ReadToEndAsync();
     }
-} 
+}

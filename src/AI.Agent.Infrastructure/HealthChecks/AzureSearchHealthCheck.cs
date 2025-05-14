@@ -1,4 +1,6 @@
+using AI.Agent.Infrastructure.VectorDatabase;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 
 namespace AI.Agent.Infrastructure.HealthChecks;
 
@@ -24,7 +26,7 @@ public class AzureSearchHealthCheck : IHealthCheck
             // Test search with empty vector
             var testVector = new float[1536];
             var results = await _vectorStore.SearchAsync(testVector, 1);
-            
+
             return HealthCheckResult.Healthy("Azure Cognitive Search is healthy");
         }
         catch (Exception ex)
@@ -33,4 +35,4 @@ public class AzureSearchHealthCheck : IHealthCheck
             return HealthCheckResult.Unhealthy("Azure Cognitive Search health check failed", ex);
         }
     }
-} 
+}

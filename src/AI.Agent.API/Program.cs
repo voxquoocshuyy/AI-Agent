@@ -1,18 +1,16 @@
+using System.Text.Json;
+using AI.Agent.Infrastructure.AI;
 using AI.Agent.Infrastructure.ApiVersioning;
 using AI.Agent.Infrastructure.Authentication;
+using AI.Agent.Infrastructure.Extensions;
 using AI.Agent.Infrastructure.HealthChecks;
 using AI.Agent.Infrastructure.Logging;
 using AI.Agent.Infrastructure.Middleware;
 using AI.Agent.Infrastructure.Swagger;
+using AI.Agent.Infrastructure.VectorDatabase;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ApiExplorer;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using AI.Agent.Infrastructure.Extensions;
-using AI.Agent.Infrastructure.AzureOpenAI;
-using AI.Agent.Infrastructure.AzureSearch;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,7 +22,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
 
 // Add logging
-builder.Services.AddLoggingServices();
+builder.Services.AddLoggingServices(builder.Configuration);
 
 // Add performance optimization
 builder.Services.AddPerformanceOptimization(builder.Configuration);
@@ -38,11 +36,12 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+        var allowedOrigins =
+            builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
         policy.WithOrigins(allowedOrigins)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
@@ -59,8 +58,10 @@ builder.Services.AddSingleton<IVectorStore, AzureSearchClient>();
 // Add health checks
 builder.Services.AddHealthChecks()
     .AddCheck<ElasticsearchHealthCheck>("elasticsearch")
-    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found."))
-    .AddRedis(builder.Configuration.GetConnectionString("Redis") ?? throw new InvalidOperationException("Connection string 'Redis' not found."))
+    .AddNpgSql(builder.Configuration.GetConnectionString("DefaultConnection") ??
+               throw new InvalidOperationException("Connection string 'DefaultConnection' not found."))
+    .AddRedis(builder.Configuration.GetConnectionString("Redis") ??
+              throw new InvalidOperationException("Connection string 'Redis' not found."))
     .AddCheck<AzureOpenAIHealthCheck>("azure-openai")
     .AddCheck<AzureSearchHealthCheck>("azure-search");
 
@@ -128,21 +129,21 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
-app.MapGet("/weatherforecast", [Authorize(Policy = "RequireUserRole")] () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithApiVersionSet("v1")
-.MapToApiVersion(new ApiVersion(1, 0));
+app.MapGet("/weatherforecast", [Authorize(Policy = "RequireUserRole")]() =>
+    {
+        var forecast = Enumerable.Range(1, 5).Select(index =>
+                new WeatherForecast
+                (
+                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+                    Random.Shared.Next(-20, 55),
+                    summaries[Random.Shared.Next(summaries.Length)]
+                ))
+            .ToArray();
+        return forecast;
+    })
+    .WithName("GetWeatherForecast")
+    .WithApiVersionSet("v1")
+    .MapToApiVersion(new ApiVersion(1, 0));
 
 // Add global exception handler
 app.UseGlobalExceptionHandler();

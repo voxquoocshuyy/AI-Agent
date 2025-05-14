@@ -1,5 +1,4 @@
 using AutoFixture;
-using AutoFixture.AutoMoq;
 using AutoFixture.Xunit2;
 
 namespace AI.Agent.UnitTests.TestHelpers;
@@ -12,7 +11,7 @@ public static class TestHelper
         fixture.Behaviors.OfType<ThrowingRecursionBehavior>().ToList()
             .ForEach(b => fixture.Behaviors.Remove(b));
         fixture.Behaviors.Add(new OmitOnRecursionBehavior());
-        fixture.Customize(new AutoMoqCustomization());
+        // fixture.Customize(new AutoMoqCustomization());
         return fixture;
     }
 }
@@ -31,4 +30,4 @@ public class InlineAutoMoqDataAttribute : InlineAutoDataAttribute
         : base(new AutoMoqDataAttribute(), values)
     {
     }
-} 
+}

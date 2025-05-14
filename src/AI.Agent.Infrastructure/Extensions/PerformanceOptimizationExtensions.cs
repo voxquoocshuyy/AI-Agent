@@ -1,9 +1,10 @@
+using System.IO.Compression;
 using AI.Agent.Infrastructure.Caching;
-using AI.Agent.Infrastructure.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.ResponseCompression;
-using Microsoft.Extensions.Caching.StackExchangeRedis;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ResponseCompressionMiddleware = AI.Agent.Infrastructure.Middleware.ResponseCompressionMiddleware;
 
 namespace AI.Agent.Infrastructure.Extensions;
 
@@ -38,12 +39,12 @@ public static class PerformanceOptimizationExtensions
 
         services.Configure<BrotliCompressionProviderOptions>(options =>
         {
-            options.Level = System.IO.Compression.CompressionLevel.Fastest;
+            options.Level = CompressionLevel.Fastest;
         });
 
         services.Configure<GzipCompressionProviderOptions>(options =>
         {
-            options.Level = System.IO.Compression.CompressionLevel.Fastest;
+            options.Level = CompressionLevel.Fastest;
         });
 
         return services;
@@ -59,4 +60,4 @@ public static class PerformanceOptimizationExtensions
 
         return app;
     }
-} 
+}

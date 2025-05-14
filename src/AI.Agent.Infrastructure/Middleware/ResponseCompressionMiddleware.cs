@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace AI.Agent.Infrastructure.Middleware;
 

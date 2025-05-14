@@ -79,7 +79,6 @@ public class DocumentsController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        document.Id = Guid.NewGuid();
         document.CreatedAt = DateTime.UtcNow;
         document.IsProcessed = false;
 
@@ -106,7 +105,7 @@ public class DocumentsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Update(Guid id, [FromBody] Document document)
     {
-        if (id != document.Id)
+        if (!id.ToString().Equals(document.Id))
         {
             return BadRequest("ID mismatch");
         }
@@ -153,11 +152,11 @@ public class DocumentsController : ControllerBase
             return NotFound();
         }
 
-        await _documentRepository.DeleteAsync(document);
+        await _documentRepository.DeleteAsync(id);
         await _unitOfWork.SaveChangesAsync();
 
         _logger.LogInformation("Document deleted with ID: {DocumentId}", id);
 
         return NoContent();
     }
-} 
+}

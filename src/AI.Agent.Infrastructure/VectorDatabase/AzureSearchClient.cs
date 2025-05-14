@@ -1,27 +1,178 @@
+using AI.Agent.Domain.Entities;
 using Azure.Search.Documents;
+using Azure.Search.Documents.Indexes;
+using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
 using Microsoft.Extensions.Logging;
 
 namespace AI.Agent.Infrastructure.VectorDatabase;
 
+/// <summary>
+/// Implementation of IVectorStore using Azure Cognitive Search
+/// </summary>
 public class AzureSearchClient : IVectorStore
 {
-    private readonly AzureSearchConfiguration _configuration;
+    private readonly ILogger<AzureSearchClient> _logger;
     private readonly SearchClient _searchClient;
     private readonly SearchIndexClient _indexClient;
-    private readonly ILogger<AzureSearchClient> _logger;
+    private readonly int _maxRetries;
+    private readonly int _retryDelayMs;
 
     public AzureSearchClient(
-        AzureSearchConfiguration configuration,
-        ILogger<AzureSearchClient> logger)
+        ILogger<AzureSearchClient> logger,
+        SearchClient searchClient,
+        SearchIndexClient indexClient,
+        int maxRetries = 3,
+        int retryDelayMs = 1000)
     {
-        _configuration = configuration;
-        _logger = logger;
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _searchClient = searchClient ?? throw new ArgumentNullException(nameof(searchClient));
+        _indexClient = indexClient ?? throw new ArgumentNullException(nameof(indexClient));
+        _maxRetries = maxRetries;
+        _retryDelayMs = retryDelayMs;
+    }
 
-        var endpoint = new Uri(configuration.Endpoint);
-        var credential = new Azure.AzureKeyCredential(configuration.ApiKey);
-        _searchClient = new SearchClient(endpoint, configuration.IndexName, credential);
-        _indexClient = new SearchIndexClient(endpoint, credential);
+    /// <summary>
+    /// Adds a document to the vector store
+    /// </summary>
+    /// <param name="document">The document to add</param>
+    public async Task AddDocumentAsync(Document document)
+    {
+        try
+        {
+            _logger.LogInformation("Adding document {DocumentId} to vector store", document.Id);
+
+            var retryCount = 0;
+            while (true)
+            {
+                try
+                {
+                    var searchDocument = new SearchDocument
+                    {
+                        Id = document.Id,
+                        Content = document.Content,
+                        Vector = document.Vector,
+                        Metadata = document.Metadata
+                    };
+
+                    await _searchClient.IndexDocumentsAsync(
+                        IndexDocumentsBatch.Upload(new[] { searchDocument }));
+
+                    _logger.LogInformation("Successfully added document {DocumentId} to vector store", document.Id);
+                    return;
+                }
+                catch (Exception ex) when (retryCount < _maxRetries)
+                {
+                    retryCount++;
+                    _logger.LogWarning(ex, "Error adding document to vector store, retry {RetryCount} of {MaxRetries}",
+                        retryCount, _maxRetries);
+                    await Task.Delay(_retryDelayMs);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding document to vector store after {MaxRetries} retries", _maxRetries);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Searches for similar documents using vector similarity
+    /// </summary>
+    /// <param name="vector">The query vector</param>
+    /// <param name="limit">Maximum number of results to return</param>
+    /// <returns>A list of similar documents</returns>
+    public async Task<IEnumerable<SearchResult>> SearchAsync(float[] vector, int limit = 5)
+    {
+        try
+        {
+            _logger.LogInformation("Searching for similar documents");
+
+            var retryCount = 0;
+            while (true)
+            {
+                try
+                {
+                    var searchOptions = new SearchOptions
+                    {
+                        Size = limit,
+                        Select = { "Id", "Content", "Metadata" },
+                        VectorSearch = new VectorSearchOptions
+                        {
+                            Queries = { new VectorSearchQuery(vector) }
+                        }
+                    };
+
+                    var results = await _searchClient.SearchAsync<SearchDocument>("*", searchOptions);
+                    var searchResults = new List<SearchResult>();
+
+                    await foreach (var result in results.Value.GetResultsAsync())
+                    {
+                        searchResults.Add(new SearchResult
+                        {
+                            Id = result.Document.Id,
+                            Content = result.Document.Content,
+                            Score = result.Score ?? 0,
+                            Metadata = result.Document.Metadata
+                        });
+                    }
+
+                    _logger.LogInformation("Found {ResultCount} similar documents", searchResults.Count);
+                    return searchResults;
+                }
+                catch (Exception ex) when (retryCount < _maxRetries)
+                {
+                    retryCount++;
+                    _logger.LogWarning(ex, "Error searching vector store, retry {RetryCount} of {MaxRetries}",
+                        retryCount, _maxRetries);
+                    await Task.Delay(_retryDelayMs);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching vector store after {MaxRetries} retries", _maxRetries);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Deletes a document from the vector store
+    /// </summary>
+    /// <param name="documentId">The ID of the document to delete</param>
+    public async Task DeleteDocumentAsync(string documentId)
+    {
+        try
+        {
+            _logger.LogInformation("Deleting document {DocumentId} from vector store", documentId);
+
+            var retryCount = 0;
+            while (true)
+            {
+                try
+                {
+                    await _searchClient.DeleteDocumentsAsync(
+                        IndexDocumentsBatch.Delete(new[] { new SearchDocument { Id = documentId } }));
+
+                    _logger.LogInformation("Successfully deleted document {DocumentId} from vector store", documentId);
+                    return;
+                }
+                catch (Exception ex) when (retryCount < _maxRetries)
+                {
+                    retryCount++;
+                    _logger.LogWarning(ex,
+                        "Error deleting document from vector store, retry {RetryCount} of {MaxRetries}",
+                        retryCount, _maxRetries);
+                    await Task.Delay(_retryDelayMs);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting document from vector store after {MaxRetries} retries", _maxRetries);
+            throw;
+        }
     }
 
     public async Task<bool> CreateIndexAsync()
@@ -77,21 +228,6 @@ public class AzureSearchClient : IVectorStore
         }
     }
 
-    public async Task<bool> AddDocumentAsync(SearchDocument document)
-    {
-        try
-        {
-            var response = await _searchClient.IndexDocumentsAsync(
-                IndexDocumentsBatch.Upload(new[] { document }));
-            return response.Value.Results[0].Succeeded;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to add document to search index");
-            return false;
-        }
-    }
-
     public async Task<bool> AddDocumentsAsync(IEnumerable<SearchDocument> documents)
     {
         try
@@ -106,56 +242,12 @@ public class AzureSearchClient : IVectorStore
                     return false;
                 }
             }
+
             return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to add documents to search index");
-            return false;
-        }
-    }
-
-    public async Task<IEnumerable<SearchResult>> SearchAsync(float[] queryVector, int topK = 5, string filter = null)
-    {
-        try
-        {
-            var searchOptions = new SearchOptions
-            {
-                Size = topK,
-                Filter = filter,
-                VectorSearch = new VectorSearchOptions
-                {
-                    Queries = { new VectorSearchQuery(queryVector, topK) }
-                }
-            };
-
-            var response = await _searchClient.SearchAsync<SearchDocument>("*", searchOptions);
-            return response.Value.GetResults().Select(r => new SearchResult
-            {
-                Id = r.Document.Id,
-                Content = r.Document.Content,
-                Score = r.Score ?? 0,
-                Metadata = r.Document.Metadata
-            });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to search documents");
-            return Enumerable.Empty<SearchResult>();
-        }
-    }
-
-    public async Task<bool> DeleteDocumentAsync(string documentId)
-    {
-        try
-        {
-            var response = await _searchClient.DeleteDocumentsAsync(
-                IndexDocumentsBatch.Delete(new[] { new SearchDocument { Id = documentId } }));
-            return response.Value.Results[0].Succeeded;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to delete document from search index");
             return false;
         }
     }
@@ -174,6 +266,7 @@ public class AzureSearchClient : IVectorStore
                     return false;
                 }
             }
+
             return true;
         }
         catch (Exception ex)
@@ -212,6 +305,7 @@ public class AzureSearchClient : IVectorStore
                     return false;
                 }
             }
+
             return true;
         }
         catch (Exception ex)
@@ -233,4 +327,4 @@ public class AzureSearchClient : IVectorStore
             return null;
         }
     }
-} 
+}
